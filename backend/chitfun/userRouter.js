@@ -2,6 +2,7 @@ const express = require('express');
 const { Chit } = require('./chitModel');
 const { User } = require('./userModel');
 const router = express.Router();
+const bcrypt = require("bcryptjs")
 const { Payment } = require('./paymentModel');
 
 
