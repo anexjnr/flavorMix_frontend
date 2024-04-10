@@ -11,12 +11,15 @@ const bcrypt = require("bcryptjs")
 // Initialize Express app
 const app = express();
 
+
+app.use(bodyParser.json()); // Parse JSON bodies
+app.use(bodyParser.urlencoded({ extended: true }));
 // Middleware
-app.use(cors()); // Enable Cross-Origin Resource Sharing
-app.use(bodyParser.json()); // Parse JSON request bodies
+//app.use(cors()); // Enable Cross-Origin Resource Sharing
+//app.use(bodyParser.json()); // Parse JSON request bodies
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://anex:anex123@cluster0.bgkikbl.mongodb.net/flavorDb?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect('mongodb+srv://anex:anex123@cluster0.bgkikbl.mongodb.net/chitDb?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('Error connecting to MongoDB:', err));
 
