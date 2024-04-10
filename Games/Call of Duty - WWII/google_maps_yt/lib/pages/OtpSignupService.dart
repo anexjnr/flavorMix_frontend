@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class OtpService {
-  static const String baseUrl = 'http://192.168.33.143:3000/api/user/verifyotp';
+  static const String baseUrl = 'http://192.168.212.143:3000/api/user/verifyotp';
   static Future<String> verifyOtp({required String userId, required String otp}) async {
     final response = await http.post(
       Uri.parse(baseUrl),

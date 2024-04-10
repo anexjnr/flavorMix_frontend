@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class UsersService {
-  static const String baseUrl = 'http://192.168.33.143:3000/api/user/signup';
+  static const String baseUrl = 'http://192.168.212.143:3000/api/user/signup';
 
   static Future<String> userSignup({
     required String firstName,
@@ -43,7 +43,7 @@ class UsersService {
     }
   }
 
-  static const String signUrl = 'http://192.168.33.143:3000/api/user/signin';
+  static const String signUrl = 'http://192.168.212.143:3000/api/user/signin';
   static Future<Map<String, dynamic>> signIn({required String email, required String password}) async {
     final response = await http.post(
       Uri.parse(signUrl),
@@ -59,7 +59,11 @@ class UsersService {
       final Map<String, dynamic> responseData = json.decode(response.body);
       final String token = responseData['token'];
       final String userId = responseData['userId'];
-      return {'token': token, 'userId': userId};
+      final String firstName = responseData['firstName'];
+      final String lastName = responseData['lastName'];
+      final String email = responseData['email'];
+      final String mobileNumber = responseData['mobileNumber'];
+      return {'token': token, 'userId': userId, 'firstName': firstName, 'lastName': lastName ,'email': email , 'mobileNumber': mobileNumber};
     } else if (response.statusCode == 401) {
       throw Exception('Please verify your OTP before logging in');
     } else if (response.statusCode == 402) {
@@ -71,7 +75,7 @@ class UsersService {
     }
   }
 
-  static const String forgetUrl = 'http://192.168.33.143:3000/api/user/forgotpassword';
+  static const String forgetUrl = 'http://192.168.212.143:3000/api/user/forgotpassword';
   static Future<void> forgetPass({required String email}) async {
     final response = await http.post(
       Uri.parse(forgetUrl),
@@ -92,7 +96,7 @@ class UsersService {
     }
   }
 
-  static const String forgetmainUrl = 'http://192.168.33.143:3000/api/user/resetpassword';
+  static const String forgetmainUrl = 'http://192.168.212.143:3000/api/user/resetpassword';
 
   static Future<void> forgetmainPass({required String email, required String otp, required String newPassword, required String confirmPassword}) async {
   try {

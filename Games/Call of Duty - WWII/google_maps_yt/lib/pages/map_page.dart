@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_yt/pages/profileMenu.dart';
+import 'package:google_maps_yt/pages/profileView.dart';
 import 'package:google_maps_yt/pages/userprofileService.dart';
 import 'package:location/location.dart' as location;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/hotels.dart';
 import '../models/place.dart';
 import '../pages/place_service.dart';
 
@@ -24,11 +28,13 @@ class _MapPageState extends State<MapPage> {
   final Completer<GoogleMapController> _mapController = Completer<GoogleMapController>();
   LatLng? _currentPosition;
   List<PurpleMap> _places = [];
+  List<Hotely> _hotelData = [];
+  bool _showCarousel = false;
   bool _isLoading = true;
 
   // Additional fields
   double _amountInHand = 0.0;
-  int _numberOfPeople = 1;
+  int _numberOfPeople = 0;
   bool _reservation = false;
   bool _showDrawer = false;
 
@@ -38,24 +44,125 @@ class _MapPageState extends State<MapPage> {
     _getLocationUpdates();
     _fetchPlaces();
     _fetchUserProfile();
+    _fetchProfilePicture();
+  }
+
+
+  Future<void> _getExistingParametersAndNavigate() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    // Retrieve other parameters from SharedPreferences
+    final userId = prefs.getString('userId');
+    final token = prefs.getString('token');
+    final List<String>? userLocationStrings = prefs.getStringList('userLocation');
+    final userLocation = userLocationStrings != null
+        ? [double.parse(userLocationStrings[0]), double.parse(userLocationStrings[1])]
+        : null;
+    final dayOfWeek = DateTime.now().toString().split(' ')[0];
+    final time = TimeOfDay.now().format(context);
+
+    // Get the values of existing class-level variables
+    final double totalAmount = _amountInHand;
+    final int numberOfPeople = _numberOfPeople;
+    final bool reservation = _reservation;
+
+    try {
+      if (userId != null && token != null) {
+        UsersService userService = UsersService();
+        final hotelData = await userService.calculateMenuCombinations(userId, token, totalAmount, numberOfPeople, reservation, userLocation, dayOfWeek, time);
+        setState(() {
+          _hotelData = hotelData as List<Hotely>;
+          _showCarousel = true;
+        });
+      }
+    } catch (error) {
+      print('Error: $error');
+      // Show custom error Snackbar
+      _showErrorSnackbar(context, error.toString());
+    }
+  }
+
+  void _showErrorSnackbar(BuildContext context, String errorMessage) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        duration: Duration(seconds: 3), // Adjust the duration as needed
+      ),
+    );
+  }
+
+  Widget _buildCarousel() {
+    return CarouselSlider(
+      options: CarouselOptions(
+        aspectRatio: 2.0,
+        enlargeCenterPage: true,
+        enableInfiniteScroll: false,
+        initialPage: 0,
+        autoPlay: true,
+      ),
+      items: _hotelData.map((hotel) {
+        return Builder(
+          builder: (BuildContext context) {
+            return buildHotelCard(hotel);
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  // Build the hotel card widget
+  Widget buildHotelCard(Hotely hotel) {
+    // Build your hotel card widget here
+    // Example:
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 4.0),
+      child: Column(
+        children: [
+          Image.network(
+            hotel.picture,
+            fit: BoxFit.cover,
+            width: 300,
+            height: 200,
+          ),
+          Text(hotel.name),
+          Text('Approximate Total Bill: ${hotel.approximateTotalBill}'),
+          // Add more details as needed
+          // Add reservation or mix it button based on reservation status
+        ],
+      ),
+    );
+  }
+
+  Future<void> _fetchProfilePicture() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final token = prefs.getString('token');
+    print("On Map Page profile : " + userId!);
+    print("On Map Page profile : " + token!);
+    if (userId != null && token != null) {
+      try {
+        UsersService userService = UsersService();
+        final userData = await userService.getProfile(userId, token); // Call the method on the instan
+        Uint8List bytes = base64Decode(userData['profilePic'].split(',').last);
+        setState(() {
+          _profilePicBytes = bytes;
+        });
+      } catch (error) {
+        print('Error fetching user profile: $error');
+      }
+    }
   }
 
   Future<void> _fetchUserProfile() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('userId');
     final token = prefs.getString('token');
-
     print("On Map Page : " + userId!);
     print("On Map Page : " + token!);
-
     if (userId != null && token != null) {
       try {
         UsersService userService = UsersService(); // Create an instance of UsersService
-        final userData = await userService.getUserProfile(userId, token); // Call the method on the instance
-
-        // Decode the base64 image
+        final userData = await userService.getUserProfile(userId, token); // Call the method on the instan
         Uint8List bytes = base64Decode(userData['profilePic'].split(',').last);
-
         setState(() {
           _profilePicBytes = bytes; // Set the profile picture bytes
           _fullName = userData['fullName'];
@@ -97,13 +204,32 @@ class _MapPageState extends State<MapPage> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () {
-              // Handle Notification Button Pressed
-            },
-            iconSize: 28.0,
-            icon: Icon(Icons.notifications, color: Colors.white),
-          )
+          Padding(
+            padding: EdgeInsets.only(right: 10.0), // Adjust right padding for notification icon
+            child: IconButton(
+              onPressed: () {
+                // Handle Notification Button Pressed
+              },
+              iconSize: 28.0,
+              icon: Icon(Icons.notifications, color: Colors.white),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(right: 10.0), // Adjust right padding between icons
+            child: IconButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>ProfileViewPage()));
+              },
+              iconSize: 30,
+              icon: CircleAvatar(
+                radius: 15,
+                backgroundColor: Colors.white, // Background color for avatar
+                backgroundImage: _profilePicBytes != null && _profilePicBytes is Uint8List
+                    ? MemoryImage(_profilePicBytes as Uint8List) as ImageProvider<Object>
+                    : AssetImage('assets/images/unknown.jpg'), // Default profile picture
+              ),
+            ),
+          ),
         ],
         backgroundColor: Colors.black,
       ),
@@ -112,6 +238,7 @@ class _MapPageState extends State<MapPage> {
           _buildGoogleMap(),
           if (_showDrawer) _buildDrawer(),
           if (!_showDrawer) _buildAdditionalFields(),
+          if (_showCarousel) _buildCarousel(),
         ],
       ),
     );
@@ -164,7 +291,7 @@ class _MapPageState extends State<MapPage> {
                   SizedBox(height: 5.0), // Reduce spacing
                   ElevatedButton(
                     onPressed: () {
-                      // Navigate to view profile page
+                      Navigator.push(context, MaterialPageRoute(builder: (context)=>BottomNavigationPage()));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pinkAccent, // Button color
@@ -244,6 +371,8 @@ class _MapPageState extends State<MapPage> {
 
 
   Widget _buildAdditionalFields() {
+    final amountController = TextEditingController();
+    final numberOfPeopleController = TextEditingController();
     return Positioned(
       top: 20.0,
       left: 20.0,
@@ -258,10 +387,10 @@ class _MapPageState extends State<MapPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTextField('Amount in Hand', 'Enter amount', TextInputType.number),
+            _buildTextField('Amount in Hand', 'Enter amount', TextInputType.number, amountController),
             SizedBox(height: 12.0), // Adjusted spacing
-            _buildTextField('Number of People', 'Enter number', TextInputType.number),
-            SizedBox(height: 12.0), // Adjusted spacing
+            _buildTextField('Number of People', 'Enter number', TextInputType.number, numberOfPeopleController),
+            SizedBox(height: 12.0), // Adjusted spacing// Adjusted spacing
             Row(
               children: [
                 Expanded(
@@ -289,7 +418,7 @@ class _MapPageState extends State<MapPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      // Perform search operation based on the input values
+                      _getExistingParametersAndNavigate(); // Call the function when the button is pressed
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pinkAccent,
@@ -306,7 +435,7 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _buildTextField(String labelText, String hintText, TextInputType keyboardType) {
+  Widget _buildTextField(String labelText, String hintText, TextInputType keyboardType , TextEditingController controller) {
     return TextFormField(
       style: TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -324,6 +453,12 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  void _storeUserLocation(double latitude, double longitude) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<double> locationList = [latitude, longitude];
+    prefs.setStringList('userLocation', locationList.map((coord) => coord.toString()).toList());
+  }
+
   void _getLocationUpdates() async {
     await _locationController.requestPermission();
     _locationController.onLocationChanged.listen((location.LocationData currentLocation) {
@@ -332,6 +467,7 @@ class _MapPageState extends State<MapPage> {
           _currentPosition = LatLng(currentLocation.latitude!, currentLocation.longitude!);
           _currentHeading = currentLocation.heading ?? 0.0; // Store the current heading
           _cameraToPosition(_currentPosition!);
+          _storeUserLocation(currentLocation.latitude!, currentLocation.longitude!);
         });
       }
     });

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class PlaceService {
-  static const String baseUrl = 'http://192.168.33.143:3000/api/hotels'; // Replace with your backend URL
+  static const String baseUrl = 'http://192.168.212.143:3000/api/hotels'; // Replace with your backend URL
 
   static Future<List<PurpleMap>> fetchPlaces() async {
     final response = await http.get(Uri.parse('$baseUrl/hotels'));

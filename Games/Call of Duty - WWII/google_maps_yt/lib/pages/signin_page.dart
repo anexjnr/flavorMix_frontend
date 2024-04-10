@@ -141,15 +141,27 @@ Navigator.push(context, MaterialPageRoute(builder: (context)=>ForgetPasswordPage
       try {
         final Map<String, dynamic> userData = await UsersService.signIn(email: email, password: password);
 
+        print('User data: $userData');
         final String token = userData['token'];
         final String userId = userData['userId'];
+        final String firstName = userData['firstName'];
+        final String lastName = userData['lastName'];
+        final String mobileNumber = userData['mobileNumber'];
 
         // Save user session using SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.setString('token', token);
         prefs.setString('userId', userId);
+        prefs.setString('firstName', firstName);
+        prefs.setString('lastName', lastName);
+        prefs.setString('email', email);
+        prefs.setString('mobileNumber', mobileNumber);
         print("token : "+token);
         print("userId : "+userId);
+        print("firstName : "+firstName);
+        print("lastName : "+lastName);
+        print("email : "+email);
+        print("mobileNumber : "+mobileNumber);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
