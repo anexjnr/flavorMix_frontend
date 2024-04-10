@@ -3,6 +3,7 @@ const { Chit } = require('./chitModel');
 const { Payment } = require('./paymentModel');
 const router = express.Router();
 
+
 // Route for setting up a new chit
 router.post('/chit/setup', async (req, res) => {
   try {
