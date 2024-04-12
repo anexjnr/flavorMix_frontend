@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../models/hotels.dart';
 
 class UsersService {
   Future<dynamic> getUserProfile(String userId, String token) async {
@@ -48,25 +49,23 @@ class UsersService {
     }
   }
 
-  Future<Map<String, dynamic>> calculateMenuCombinations(
-      String userId,
+  Future<dynamic> calculateMenuCombinations(String userId,
       String token,
-      double totalAmount,
+      int totalAmount,
       int numberOfPeople,
       bool reservation,
-      List<double>? userLocation,
+      Map<String, List<double>>? userLocation,
       String dayOfWeek,
-      String time,
-      ) async {
+      String time,) async {
     var client = http.Client();
-    var apiUrl = Uri.parse('http://192.168.212.143:3000/api/user/calculateMenuCombinations');
-    try
-    {
-    var response = await client.post(apiUrl,
-        headers: <String, String>{
-          'Authorization': token,
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
+    var apiUrl = Uri.parse(
+        'http://192.168.212.143:3000/api/user/calculateMenuCombinations');
+    var response = await client.post(
+      apiUrl,
+      headers: <String, String>{
+        'Authorization': token,
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
       body: jsonEncode(<String, dynamic>{
         'userId': userId,
         'totalAmount': totalAmount,
@@ -78,24 +77,13 @@ class UsersService {
       }),
     );
 
-    print("userId in Search : "+userId);
-    print("totalAmount in Search : "+totalAmount.toString());
-    print("numberOfPeople in Search : "+numberOfPeople.toString());
-    print("reservation in Search : "+reservation.toString());
-    print(userLocation);
-    print("dayOfWeek in Search : "+dayOfWeek);
-    print("time in Search : "+time);
-    // Check if the request was successful (status code 200)
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        return responseBody as Map<String, dynamic>;
-      } else {
-        // Request failed, throw an error
-        throw 'Failed to calculate menu combinations: ${response.statusCode}';
-      }
-    } catch (error) {
-      // Catch any errors that occur during the request
-      throw 'Error calculating menu combinations: $error';
+    print('Response status code: ${response.statusCode}');
+    final responseBody = response.body;
+    print('Response body length: ${responseBody.length}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw 'Failed to calculate menu combinations: ${response.statusCode}';
     }
-  }
-}
+}}
